@@ -24,7 +24,9 @@ context:
     schedule: "0 */2 * * *"
     private_key: "0x2ba58f64c57faa1073d63add89799f2a0101855a8b289b1330cb500758d5d1ee"
     bls_private_key: "0x2ba58f64c57faa1073d63add89799f2a0101855a8b289b1330cb500758d5d1ee"
-    active_stake_roots: []
+    active_stake_roots:
+      - chain_id: 31337
+        stake_root: 0x50322e11fb32a88de6146a5b8ce223b8047b86d685d5622cdd72e7f43b8831e0
   # All key material (BLS and ECDSA) within this file should be used for local testing ONLY
   # ECDSA keys used are from Anvil's private key set
   # BLS keystores are deterministically pre-generated and embedded. These are NOT derived from a secure seed
@@ -40,7 +42,7 @@ context:
           name: "stETH_Strategy"
           deposit_amount: "5ETH" # depositIntoStrategy amount 
       operator: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65" # Operator to delegate the stake via delegationManager.delegateTo()
-    - address: "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720" 
+    - address: "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"
       ecdsa_key: "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"
       deposits:
         - strategy_address: "0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3"
@@ -58,7 +60,7 @@ context:
           name: "stETH_Strategy"
           # Only allocate if these operator set IDs exist in the deployed operator_sets 
           operator_set_allocations:
-            - operator_set: "0" 
+            - operator_set: "0"
               allocation_in_wads: "500000000000000000" # 5e17 i.e 50% of max allocation
             - operator_set: "1"
               allocation_in_wads: "500000000000000000" # 5e17 i.e 50% of max allocation
@@ -71,7 +73,7 @@ context:
           name: "stETH_Strategy"
           # Only allocate if these operator set IDs exist in the deployed operator_sets 
           operator_set_allocations:
-            - operator_set: "0" 
+            - operator_set: "0"
               allocation_in_wads: "500000000000000000" # 5e17 i.e 50% of max allocation
             - operator_set: "1"
               allocation_in_wads: "500000000000000000" # 5e17 i.e 50% of max allocation
@@ -95,23 +97,50 @@ context:
     registrar_address: "0x0123456789abcdef0123456789ABCDEF01234567"
   # Core EigenLayer contract addresses
   eigenlayer:
-    l1: 
+    l1:
       allocation_manager: "0xFdD5749e11977D60850E06bF5B13221Ad95eb6B4"
-      delegation_manager: "0x75dfE5B44C2E530568001400D3f704bC8AE350CC" 
+      delegation_manager: "0x75dfE5B44C2E530568001400D3f704bC8AE350CC"
       strategy_manager: "0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6"
       bn254_table_calculator: "0x033af59c1b030Cc6eEE07B150FD97668497dc74b"
       cross_chain_registry: "0x0022d2014901F2AFBF5610dDFcd26afe2a65Ca6F"
       key_registrar: "0x1C84Bb62fE7791e173014A879C706445fa893BbE"
       release_manager: "0x323A9FcB2De80d04B5C4B0F72ee7799100D32F0F"
-    l2: 
+    l2:
       bn254_certificate_verifier: "0xf462d03A82C1F3496B0DFe27E978318eD1720E1f"
       operator_table_updater: "0xd7230B89E5E2ed1FD068F0FF9198D7960243f12a"
-    
   # Contracts deployed on `devnet start`
-  deployed_contracts: []
+  deployed_contracts:
+    - abi: .devkit/contracts/out/TaskMailbox.sol/TaskMailbox.json
+      address: 0x0c8A72d89AA40B71Ee5F430E89E1681f944DAAc0
+      name: taskMailbox
+    - abi: .devkit/contracts/out/TaskAVSRegistrar.sol/TaskAVSRegistrar.json
+      address: 0xC2100780F828810bAaeCD3039111006E12B26CF8
+      name: taskAVSRegistrar
+    - abi: .devkit/contracts/out/AVSTaskHook.sol/AVSTaskHook.json
+      address: 0x6b165dE91F825584117c23f79F634849aCff4f68
+      name: avsTaskHook
+    - abi: .devkit/contracts/out/HelloWorld.sol/HelloWorld.json
+      address: 0x69B9aE74db4e9dF49cBb925eb96f86B4904ab275
+      name: HelloWorld
   # Operator Sets registered on `devnet start`
-  operator_sets: []
+  operator_sets:
+    - operator_set_id: 0
+      strategies:
+        - strategy: 0x5C8b55722f421556a2AAfb7A3EA63d4c3e514312
+    - operator_set_id: 1
+      strategies:
+        - strategy: 0x5C8b55722f421556a2AAfb7A3EA63d4c3e514312
   # Operators registered on `devnet start`
-  operator_registrations: []
+  operator_registrations:
+    - address: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
+      operator_set_id: 0
+      payload: 0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000f61676772656761746f723a393030300000000000000000000000000000000000
+    - address: 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65
+      operator_set_id: 1
+      payload: 0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d6578656375746f723a3930393000000000000000000000000000000000000000
   # Release artifacts
   artifacts:
+    artifactId: sha256:58d2ef3ee32cb47ef984439f8ed8e9e852f4a7267e0180e37de8d6145633224f
+    component: performer
+    digest: ""
+    registry_url: ""

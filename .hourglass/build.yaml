@@ -1,0 +1,4 @@
+container:
+  registry: "" # optional
+  image: "my-avs"
+  version: "latest"

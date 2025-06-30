@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {BatchSettlement} from "../src/BatchSettlement.sol";
 import {DisputeGame} from "../src/DisputeGame.sol";
 import {OperatorSet} from "@eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
+import {IAllocationManager} from "@eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 
 /**
  * @title PolymarketCLOBTest
@@ -74,11 +75,4 @@ contract PolymarketCLOBTest is Test {
         // Check dispute count
         assertEq(disputeGame.getDisputeCount(), 0);
     }
-}
-
-// Mock interface for testing
-interface IAllocationManager {
-    function getCurrentTotalMagnitude(
-        OperatorSet memory operatorSet
-    ) external view returns (uint256);
 }

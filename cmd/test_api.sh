@@ -5,10 +5,13 @@
 BASE_URL="http://localhost:8081"
 
 echo "Testing Polymarket CLOB Sequencer API..."
+echo "Make sure the sequencer is running with: go run main.go"
+echo ""
 
 # Test health endpoint
 echo "1. Testing health endpoint..."
-curl -s -X GET "$BASE_URL/health" | jq .
+curl -s -X GET "$BASE_URL/health"
+echo ""
 echo ""
 
 # Test order submission with a valid order

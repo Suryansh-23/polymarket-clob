@@ -16,7 +16,7 @@ contract DisputeGame {
     IAllocationManager public immutable allocationManager;
 
     /// @notice The operator set for this AVS
-    OperatorSet public immutable operatorSet;
+    OperatorSet public operatorSet;
 
     /// @notice The BatchSettlement contract to verify batch roots
     address public immutable batchSettlement;

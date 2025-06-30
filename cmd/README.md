@@ -8,10 +8,9 @@ The sequencer ingests EIP-712 signed orders, performs price-time priority matchi
 
 ## Components
 
-- **server.go**: HTTP server that accepts order submissions on port 8081
-- **matcher.go**: Order matching engine with price-time priority and Merkle tree construction
-- **submitter.go**: Ethereum transaction submission to BatchSettlement contract
-- **main.go**: Service entrypoint with graceful shutdown handling
+- **main.go**: HTTP server entrypoint that accepts order submissions on port 8081
+- **matcher/**: Order matching engine package with price-time priority and Merkle tree construction
+- **submitter/**: Ethereum transaction submission package for BatchSettlement contract
 
 ## Quick Start
 
@@ -28,7 +27,7 @@ export RPC_URL="http://localhost:8545"  # or your RPC endpoint
 export BATCH_SETTLEMENT_ADDRESS="0x5FbDB2315678afecb367f032d93F642f64180aa3"  # contract address
 
 # Run the sequencer
-go run *.go
+go run main.go
 ```
 
 ## API Endpoints
@@ -79,12 +78,41 @@ Health check endpoint.
 
 ## Order Matching Logic
 
-1. Orders are sorted by descending price, then ascending timestamp (price-time priority)
-2. Top two orders are matched if available
-3. Fill quantity is calculated as minimum of makeAmount and takeAmount
-4. Merkle tree is built over fills
-5. BLS signatures are aggregated from operators
-6. Batch is submitted to the BatchSettlement contract
+The enhanced matching engine supports **multiple fills per batch** and **partial order fills**:
+
+1. **Multi-Fill Processing**: Orders are sorted by descending price, then ascending timestamp (price-time priority)
+2. **Bid/Ask Separation**: Orders are automatically classified as bids (buyers) or asks (sellers)
+3. **Cross-Price Matching**: Bids and asks are matched when bid price ≥ ask price
+4. **Partial Fills**: Orders can be partially filled across multiple batches
+5. **Batch Size Limiting**: Maximum number of fills per batch (default: 100)
+6. **Order Book Pruning**: Fully filled orders are removed, partially filled orders remain with updated amounts
+
+### Multi-Fill Algorithm:
+
+```
+1. Sort all orders by price-time priority
+2. Split into bids (buyers) and asks (sellers)
+3. Match bids vs asks while bid_price ≥ ask_price:
+   - Calculate fill_qty = min(bid.makeAmount, ask.takeAmount)
+   - Create fill record with order hashes
+   - Reduce both order amounts by fill_qty
+   - Advance to next order if current order is fully filled
+4. Build Merkle tree over all fills in batch
+5. Return remaining orders with updated amounts
+```
+
+### Enhanced MatchAndBatch Signature:
+
+```go
+func MatchAndBatch(orders []Order, maxBatch int) (root string, fillsBytes []byte, remaining []Order, err error)
+```
+
+- **orders**: Input order book
+- **maxBatch**: Maximum fills per batch (prevents large batches)
+- **root**: Merkle root of all fills in batch
+- **fillsBytes**: JSON-serialized fill records
+- **remaining**: Updated order book after matching
+- **err**: Any matching errors
 
 ## Development
 

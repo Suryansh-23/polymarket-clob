@@ -7,6 +7,7 @@ require (
 	github.com/Layr-Labs/protocol-apis v1.12.1
 	github.com/cbergoon/merkletree v0.2.0
 	github.com/ethereum/go-ethereum v1.15.11
+	github.com/joho/godotenv v1.5.1
 	go.uber.org/zap v1.27.0
 )
 

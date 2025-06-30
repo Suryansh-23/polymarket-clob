@@ -115,15 +115,8 @@ contract BatchSettlement {
      */
     function _verifyBLSQuorum(
         bytes32 /* root */,
-        bytes calldata /* aggSig */
+        bytes calldata aggSig
     ) internal view returns (bool success) {
-        // Get all operators registered to this operator set
-        address[] memory operators = allocationManager.getMembers(operatorSet);
-
-        if (operators.length == 0) {
-            return false;
-        }
-
         // For MVP, we'll use a simple signature verification
         // In production, this would:
         // 1. Parse the BLS aggregate signature

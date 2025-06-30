@@ -75,6 +75,40 @@ Health check endpoint.
 - `PRIVATE_KEY`: Ethereum private key for transaction signing (required)
 - `RPC_URL`: Ethereum RPC endpoint (default: http://localhost:8545)
 - `BATCH_SETTLEMENT_ADDRESS`: BatchSettlement contract address
+- `BLS_KEYS`: Comma-separated list of BLS private keys in hex format for operator signing (optional)
+
+### BLS Key Configuration
+
+The sequencer supports **real BLS signature aggregation** using operator private keys from the EigenLayer crypto-libs. Configure with:
+
+```bash
+export BLS_KEYS="0x123abc...,0x456def...,0x789ghi..."
+```
+
+**Key Generation**: Use the Hourglass BN254 keygen tool to generate test keys:
+
+```bash
+# Generate a BN254 private key for testing
+cd .devkit/contracts/lib/hourglass-monorepo/ponos/cmd/keygen
+go run main.go generate --curve-type bn254 --output-dir ./keys
+
+# Extract hex private key for BLS_KEYS environment variable
+go run main.go info --key-file ./keys/bn254-0.key
+```
+
+**Production Keys**: In production, use proper operator key management:
+
+```bash
+# Generate multiple operator keys for multi-signature
+go run main.go generate --curve-type bn254 --output-dir ./operator1
+go run main.go generate --curve-type bn254 --output-dir ./operator2
+go run main.go generate --curve-type bn254 --output-dir ./operator3
+
+# Combine hex private keys into BLS_KEYS
+export BLS_KEYS="0xkey1...,0xkey2...,0xkey3..."
+```
+
+**Fallback Behavior**: If `BLS_KEYS` is not set, the system automatically falls back to mock BLS signatures for development and testing.
 
 ## Order Matching Logic
 

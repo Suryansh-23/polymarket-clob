@@ -2,14 +2,64 @@ package matcher
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/cbergoon/merkletree"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/Layr-Labs/crypto-libs/pkg/bn254"
+	"github.com/Layr-Labs/crypto-libs/pkg/signing"
 )
+
+// Global BLS private keys for operator signing
+var (
+	privKeys []signing.PrivateKey
+)
+
+// init loads BLS private keys from environment variable
+func init() {
+	// Load private keys from BLS_KEYS environment variable
+	raw := os.Getenv("BLS_KEYS")
+	if raw == "" {
+		log.Printf("Warning: BLS_KEYS environment variable not set. Using mock BLS signing.")
+		return
+	}
+	
+	keys := strings.Split(raw, ",")
+	privKeys = make([]signing.PrivateKey, 0, len(keys))
+	
+	for _, hexKey := range keys {
+		hexKey = strings.TrimSpace(hexKey)
+		if hexKey == "" {
+			continue
+		}
+		
+		keyBytes, err := hexutil.Decode(hexKey)
+		if err != nil {
+			log.Printf("Warning: Failed to decode BLS private key: %v", err)
+			continue
+		}
+		
+		// Use BN254 scheme to create private key from bytes
+		scheme := bn254.NewScheme()
+		privKey, err := scheme.NewPrivateKeyFromBytes(keyBytes)
+		if err != nil {
+			log.Printf("Warning: Failed to create BLS private key: %v", err)
+			continue
+		}
+		
+		privKeys = append(privKeys, privKey)
+	}
+	
+	log.Printf("Loaded %d BLS private keys for operator signing", len(privKeys))
+}
 
 // Order represents a polymarket CLOB order with EIP-712 signature
 type Order struct {
@@ -295,20 +345,61 @@ func MatchAndBatch(orders []Order, maxBatch int) (string, []byte, []Order, error
 	return root, fillsBytes, remainingOrders, nil
 }
 
-// AggregateBLS creates a mock BLS signature for the root
-// In a real implementation, this would collect signatures from operators
-func AggregateBLS(root string) []byte {
+// AggregateBLS creates a real BLS aggregate signature for the batch root
+// Uses loaded operator private keys to sign and aggregate signatures
+func AggregateBLS(root string) ([]byte, error) {
 	log.Printf("Aggregating BLS signatures for root: %s", root)
 	
-	// Mock implementation - in production, this would:
-	// 1. Send root to all operators in the quorum
-	// 2. Collect BLS signatures from >= 2/3 stake weight
-	// 3. Aggregate signatures using BLS aggregation
+	// If no real keys loaded, fall back to mock
+	if len(privKeys) == 0 {
+		log.Printf("No BLS private keys loaded, using mock signature")
+		mockSignature := fmt.Sprintf("mock_bls_signature_%s", root[:16])
+		return []byte(mockSignature), nil
+	}
 	
-	// For now, return a mock signature
-	mockSignature := fmt.Sprintf("mock_bls_signature_%s", root[:16])
+	// 1. Hash root into a BLS message
+	msg := common.FromHex(root)
+	if len(msg) == 0 {
+		return nil, fmt.Errorf("invalid root hex string: %s", root)
+	}
 	
-	log.Printf("BLS signature aggregated (mock): %s", mockSignature)
+	// Use SHA256 hash of the root as the message to sign
+	hasher := sha256.New()
+	hasher.Write(msg)
+	messageHash := hasher.Sum(nil)
 	
-	return []byte(mockSignature)
+	log.Printf("Message hash for signing: %s", hex.EncodeToString(messageHash))
+	
+	// 2. Each operator signs
+	var sigs []signing.Signature
+	for i, sk := range privKeys {
+		s, err := sk.Sign(messageHash)
+		if err != nil {
+			log.Printf("Error signing with private key %d: %v", i, err)
+			continue
+		}
+		sigs = append(sigs, s)
+		log.Printf("Operator %d signed successfully", i)
+	}
+	
+	if len(sigs) == 0 {
+		return nil, fmt.Errorf("no valid signatures collected from %d operators", len(privKeys))
+	}
+	
+	log.Printf("Collected %d valid signatures from operators", len(sigs))
+	
+	// 3. Aggregate signatures using BN254 scheme
+	scheme := bn254.NewScheme()
+	aggSig, err := scheme.AggregateSignatures(sigs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to aggregate BLS signatures: %w", err)
+	}
+	
+	// Serialize the aggregated signature to bytes
+	aggSigBytes := aggSig.Bytes()
+	
+	log.Printf("BLS signature aggregated successfully: %s (length: %d)", 
+		hex.EncodeToString(aggSigBytes), len(aggSigBytes))
+	
+	return aggSigBytes, nil
 }

@@ -88,11 +88,15 @@ func handleOrders(w http.ResponseWriter, r *http.Request) {
 	mu.Unlock()
 
 	if err == nil && len(fillsBytes) > 0 {
-		aggSig := matcher.AggregateBLS(root)
-		if txHash, err2 := submitter.SubmitBatch(root, fillsBytes, aggSig); err2 == nil {
-			log.Printf("Batch submitted: %s", txHash)
+		aggSig, err := matcher.AggregateBLS(root)
+		if err != nil {
+			log.Printf("BLS aggregate error: %v", err)
 		} else {
-			log.Printf("Error submitting batch: %v", err2)
+			if txHash, err2 := submitter.SubmitBatch(root, fillsBytes, aggSig); err2 == nil {
+				log.Printf("Batch submitted: %s", txHash)
+			} else {
+				log.Printf("Error submitting batch: %v", err2)
+			}
 		}
 	} else if err != nil {
 		log.Printf("Error in MatchAndBatch: %v", err)

@@ -247,12 +247,11 @@ contract DisputeGame {
     /**
      * @notice Slashes all operators in the operator set
      * @dev Internal function to execute slashing via AllocationManager
-     * @param root The disputed batch root (for slashing description)
      * @return slashedCount The number of operators slashed
      */
     function _slashAllOperators(
-        bytes32 root
-    ) internal returns (uint256 slashedCount) {
+        bytes32 /* root */
+    ) internal pure returns (uint256 slashedCount) {
         // Get all operators in the set for slashing
         // This is a simplified implementation - real version would get actual operator list
 
@@ -266,12 +265,12 @@ contract DisputeGame {
         // 2. Create slashing parameters for each operator
         // 3. Execute slashing for the full stake of each operator
 
-        string memory description = string(
-            abi.encodePacked(
-                "Order sequencing violation in batch: ",
-                _bytes32ToString(root)
-            )
-        );
+        // string memory description = string(
+        //     abi.encodePacked(
+        //         "Order sequencing violation in batch: ",
+        //         _bytes32ToString(root)
+        //     )
+        // );
 
         // This would be replaced with actual operator slashing logic
         // For now, return a symbolic count

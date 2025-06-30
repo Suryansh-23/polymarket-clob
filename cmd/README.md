@@ -72,10 +72,42 @@ Health check endpoint.
 
 ## Environment Variables
 
+### Core Configuration
+
 - `PRIVATE_KEY`: Ethereum private key for transaction signing (required)
 - `RPC_URL`: Ethereum RPC endpoint (default: http://localhost:8545)
-- `BATCH_SETTLEMENT_ADDRESS`: BatchSettlement contract address
+- `CONTRACT_ADDRESS`: BatchSettlement contract address (preferred)
+- `BATCH_SETTLEMENT_ADDRESS`: Legacy name for contract address (still supported)
 - `BLS_KEYS`: Comma-separated list of BLS private keys in hex format for operator signing (optional)
+
+### Transaction & Retry Configuration
+
+- `MAX_RETRIES`: Maximum number of retry attempts for failed transactions (default: 5)
+- `BACKOFF_MS`: Initial backoff delay in milliseconds between retries (default: 200)
+
+The submitter package now includes **robust transaction handling** with:
+
+- **Automatic gas estimation** with 20% buffer
+- **Pending nonce management** to avoid conflicts
+- **Exponential backoff retry logic** for transient failures
+- **Durable in-memory queue** for failed batches
+- **Comprehensive logging** with Etherscan links
+
+### Retry Configuration Examples
+
+```bash
+# Conservative retry configuration (production)
+export MAX_RETRIES=10
+export BACKOFF_MS=500
+
+# Fast retry configuration (development)
+export MAX_RETRIES=3
+export BACKOFF_MS=100
+
+# No retries (testing)
+export MAX_RETRIES=1
+export BACKOFF_MS=0
+```
 
 ### BLS Key Configuration
 
@@ -109,6 +141,74 @@ export BLS_KEYS="0xkey1...,0xkey2...,0xkey3..."
 ```
 
 **Fallback Behavior**: If `BLS_KEYS` is not set, the system automatically falls back to mock BLS signatures for development and testing.
+
+## Failed Batch Management
+
+The submitter includes a **durable in-memory queue** for batches that fail after all retry attempts. This ensures no batches are lost due to temporary network issues or gas problems.
+
+### Failed Batch Queue Operations
+
+```go
+// Get current queue status
+failedCount := submitter.GetFailedBatchesCount()
+log.Printf("Failed batches in queue: %d", failedCount)
+
+// Inspect failed batches
+failedBatches := submitter.GetFailedBatches()
+for _, batch := range failedBatches {
+    log.Printf("Failed batch: %s (attempts: %d, time: %v)",
+        batch.Root, batch.Attempts, batch.Timestamp)
+}
+
+// Retry all failed batches
+err := submitter.RetryFailedBatches()
+if err != nil {
+    log.Printf("Some batches still failed: %v", err)
+}
+
+// Clear failed queue (use with caution)
+cleared := submitter.ClearFailedBatches()
+log.Printf("Cleared %d failed batches", cleared)
+```
+
+### CLI Command for Retry Management
+
+Create a separate command to manage failed batches:
+
+```bash
+# Add to main.go or create separate retry command
+go run cmd/retry/main.go --action=status   # Show queue status
+go run cmd/retry/main.go --action=retry    # Retry all failed batches
+go run cmd/retry/main.go --action=clear    # Clear failed queue
+```
+
+### HTTP Endpoint for Retry Management
+
+Add an HTTP endpoint to your sequencer for retry management:
+
+```go
+// Add to main.go HTTP routes
+http.HandleFunc("/failed-batches", func(w http.ResponseWriter, r *http.Request) {
+    switch r.Method {
+    case "GET":
+        // Return failed batch status
+        count := submitter.GetFailedBatchesCount()
+        json.NewEncoder(w).Encode(map[string]int{"failed_count": count})
+    case "POST":
+        // Retry failed batches
+        err := submitter.RetryFailedBatches()
+        if err != nil {
+            http.Error(w, err.Error(), 500)
+            return
+        }
+        w.WriteHeader(200)
+    case "DELETE":
+        // Clear failed batches
+        cleared := submitter.ClearFailedBatches()
+        json.NewEncoder(w).Encode(map[string]int{"cleared": cleared})
+    }
+})
+```
 
 ## Order Matching Logic
 

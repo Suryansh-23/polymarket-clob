@@ -116,7 +116,7 @@ contract BatchSettlement {
     function _verifyBLSQuorum(
         bytes32 /* root */,
         bytes calldata aggSig
-    ) internal view returns (bool success) {
+    ) internal pure returns (bool success) {
         // For MVP, we'll use a simple signature verification
         // In production, this would:
         // 1. Parse the BLS aggregate signature

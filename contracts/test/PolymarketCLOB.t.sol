@@ -38,7 +38,7 @@ contract PolymarketCLOBTest is Test {
         );
     }
 
-    function testContractDeployment() public {
+    function testContractDeployment() public view {
         // Verify contracts deployed correctly
         assertEq(
             address(batchSettlement.allocationManager()),
@@ -56,7 +56,7 @@ contract PolymarketCLOBTest is Test {
         assertEq(batchSettlement.getQuorumThreshold(), 6667);
     }
 
-    function testBatchRootTracking() public {
+    function testBatchRootTracking() public view {
         bytes32 testRoot = keccak256("test root");
 
         // Initially, batch should not be submitted
@@ -66,7 +66,7 @@ contract PolymarketCLOBTest is Test {
         assertEq(blockNumber, 0);
     }
 
-    function testDisputeRootTracking() public {
+    function testDisputeRootTracking() public view {
         bytes32 testRoot = keccak256("test root");
 
         // Initially, root should not be disputed

@@ -1,83 +1,194 @@
 import { WagmiWrapper } from "./wagmi";
+import OrderForm from "./components/OrderForm";
 import OrderBook from "./components/OrderBook";
 import DepthChart from "./components/DepthChart";
 import VolumeChart from "./components/VolumeChart";
 import EventLog from "./components/EventLog";
+import { tradingSimulator } from "./services/TradingSimulator";
+import { useEffect, useState } from "react";
 
 export default function App() {
+  const [simulatorActive, setSimulatorActive] = useState(false);
+  const [marketPrice, setMarketPrice] = useState(1.25);
+
+  useEffect(() => {
+    // Start the trading simulator with faster interval
+    tradingSimulator.start(1000 + Math.random() * 1000); // Random interval 1-2 seconds (faster)
+    setSimulatorActive(true);
+
+    // Update market price periodically
+    const priceInterval = setInterval(() => {
+      setMarketPrice(tradingSimulator.getCurrentMarketPrice());
+    }, 1000);
+
+    return () => {
+      tradingSimulator.stop();
+      clearInterval(priceInterval);
+    };
+  }, []);
+
+  const toggleSimulator = () => {
+    if (simulatorActive) {
+      tradingSimulator.stop();
+      setSimulatorActive(false);
+    } else {
+      tradingSimulator.start(1000 + Math.random() * 1000); // Faster interval here too
+      setSimulatorActive(true);
+    }
+  };
+
   return (
     <WagmiWrapper>
       <div
         style={{
           minHeight: "100vh",
-          backgroundColor: "#f5f5f5",
-          padding: "20px",
+          backgroundColor: "#0d1421",
+          color: "#ffffff",
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
         }}
       >
+        {/* Top Header */}
         <header
           style={{
-            textAlign: "center",
-            marginBottom: "24px",
-            padding: "20px",
-            backgroundColor: "#fff",
-            borderRadius: "12px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            borderBottom: "1px solid #1e2329",
+            padding: "12px 24px",
+            backgroundColor: "#1e2329",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}
         >
-          <h1
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <h1
+              style={{
+                margin: 0,
+                color: "#f0b90b",
+                fontSize: "24px",
+                fontWeight: "600",
+              }}
+            >
+              📈 Polymarket CLOB
+            </h1>
+            <span
+              style={{
+                marginLeft: "16px",
+                color: "#848e9c",
+                fontSize: "14px",
+              }}
+            >
+              Decentralized Exchange
+            </span>
+          </div>
+          <div
             style={{
-              margin: "0 0 8px 0",
-              color: "#1976d2",
-              fontSize: "28px",
-              fontWeight: "bold",
+              display: "flex",
+              alignItems: "center",
+              gap: "16px",
+              fontSize: "12px",
+              color: "#848e9c",
             }}
           >
-            📈 Polymarket CLOB Dashboard
-          </h1>
-          <p
-            style={{
-              margin: 0,
-              color: "#666",
-              fontSize: "16px",
-            }}
-          >
-            Real-time monitoring of order book, trading activity, and on-chain
-            events
-          </p>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div
+                style={{
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "50%",
+                  backgroundColor: "#02c076",
+                }}
+              />
+              <span>
+                Connected to {import.meta.env.VITE_RPC_URL || "localhost:8545"}
+              </span>
+            </div>
+            <div>Market: ${marketPrice.toFixed(4)}</div>
+            <div>Block: #{new Date().getTime() % 100000}</div>
+            <button
+              onClick={toggleSimulator}
+              style={{
+                fontSize: "11px",
+                padding: "4px 8px",
+                backgroundColor: simulatorActive ? "#f84960" : "#02c076",
+                color: "#ffffff",
+                border: "1px solid transparent",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
+            >
+              {simulatorActive ? "Stop Bot" : "Start Bot"}
+            </button>
+          </div>
         </header>
 
+        {/* Main Trading Interface */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
-            gap: "20px",
-            maxWidth: "1400px",
-            margin: "0 auto",
+            gridTemplateColumns: "280px 1fr 320px",
+            height: "calc(100vh - 61px)", // Subtract header height
+            gap: "0px",
+            backgroundColor: "#1e2329",
           }}
         >
-          <OrderBook />
-          <DepthChart />
-          <VolumeChart />
-          <EventLog />
-        </div>
+          {/* Left Sidebar - Order Form */}
+          <div
+            style={{
+              backgroundColor: "#0d1421",
+              padding: "20px",
+              borderRight: "1px solid #1e2329",
+              overflowY: "auto",
+            }}
+          >
+            <OrderForm />
+          </div>
 
-        <footer
-          style={{
-            textAlign: "center",
-            marginTop: "24px",
-            padding: "16px",
-            color: "#999",
-            fontSize: "14px",
-          }}
-        >
-          <div>
-            🔗 Connected to:{" "}
-            {import.meta.env.VITE_RPC_URL || "http://localhost:8545"}
+          {/* Center Content */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateRows: "2fr 1fr", // Give more space to charts (2/3) and less to events (1/3)
+              gap: "0px",
+            }}
+          >
+            {/* Top Charts */}
+            <div
+              style={{
+                backgroundColor: "#0d1421",
+                padding: "20px",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "20px",
+                borderBottom: "1px solid #1e2329",
+              }}
+            >
+              <DepthChart />
+              <VolumeChart />
+            </div>
+
+            {/* Bottom Events */}
+            <div
+              style={{
+                backgroundColor: "#0d1421",
+                padding: "20px",
+                overflowY: "auto",
+              }}
+            >
+              <EventLog />
+            </div>
           </div>
-          <div style={{ marginTop: "4px" }}>
-            Last updated: {new Date().toLocaleString()}
+
+          {/* Right Sidebar - Order Book */}
+          <div
+            style={{
+              backgroundColor: "#0d1421",
+              padding: "20px",
+              borderLeft: "1px solid #1e2329",
+              overflowY: "auto",
+            }}
+          >
+            <OrderBook />
           </div>
-        </footer>
+        </div>
       </div>
     </WagmiWrapper>
   );

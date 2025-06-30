@@ -1,11 +1,12 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: dark;
+  color: #ffffff;
+  background-color: #0d1421;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,56 +14,190 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 a {
   font-weight: 500;
-  color: #646cff;
+  color: #f0b90b;
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  color: #fcd535;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
+  padding: 0;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #0d1421;
+  color: #ffffff;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: #ffffff;
+  margin: 0;
 }
 
 button {
-  border-radius: 8px;
+  border-radius: 4px;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #f0b90b;
+  color: #0d1421;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: all 0.25s;
 }
 button:hover {
-  border-color: #646cff;
+  background-color: #fcd535;
 }
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+button:disabled {
+  background-color: #2b3139;
+  color: #848e9c;
+  cursor: not-allowed;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+input,
+select {
+  background-color: #1e2329;
+  color: #ffffff;
+  border: 1px solid #2b3139;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: inherit;
+}
+input:focus,
+select:focus {
+  outline: none;
+  border-color: #f0b90b;
+}
+
+/* Trading UI Specific Styles */
+.trading-panel {
+  background-color: #1e2329;
+  border: 1px solid #2b3139;
+  border-radius: 4px;
+  padding: 16px;
+  color: #ffffff;
+}
+
+.price-up {
+  color: #02c076 !important;
+}
+
+.price-down {
+  color: #f84960 !important;
+}
+
+.text-muted {
+  color: #848e9c;
+}
+
+/* CEX-style Table */
+.trading-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.trading-table th {
+  background-color: #1e2329;
+  color: #848e9c;
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid #2b3139;
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.trading-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #2b3139;
+}
+
+.trading-table tr:hover {
+  background-color: rgba(240, 185, 11, 0.05);
+}
+
+/* Skeleton Loading Styles */
+.skeleton {
+  background: linear-gradient(90deg, #2b3139 25%, #1e2329 50%, #2b3139 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
   }
-  a:hover {
-    color: #747bff;
+  100% {
+    background-position: -200% 0;
   }
-  button {
-    background-color: #f9f9f9;
+}
+
+.skeleton-line {
+  height: 16px;
+  margin-bottom: 8px;
+}
+
+.skeleton-text {
+  height: 12px;
+  margin-bottom: 4px;
+}
+
+.skeleton-price {
+  width: 60px;
+  height: 14px;
+  margin-bottom: 2px;
+}
+
+.skeleton-amount {
+  width: 80px;
+  height: 14px;
+  margin-bottom: 2px;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .main-grid {
+    grid-template-columns: 300px 1fr 300px !important;
   }
+}
+
+@media (max-width: 900px) {
+  .main-grid {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto auto !important;
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e2329;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2b3139;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #848e9c;
 }

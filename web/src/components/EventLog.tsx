@@ -1,198 +1,91 @@
 import { useState, useEffect } from "react";
-import { useWatchContractEvent, useBlockNumber } from "wagmi";
-import { batchSettlementABI, CONTRACT_ADDRESS } from "../contracts";
 
-interface BlockchainEvent {
+interface Event {
   id: string;
-  type: "BatchSubmitted" | "Disputed" | "OrderMatched";
-  txHash: string;
-  blockNumber: number;
+  type: "OrderPlaced" | "OrderMatched" | "BatchSubmitted";
   timestamp: number;
-  data: Record<string, any>;
+  data: any;
 }
 
 export default function EventLog() {
-  const [events, setEvents] = useState<BlockchainEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isConnected, setIsConnected] = useState(false);
-
-  // Get current block number to determine connection status
-  const { data: blockNumber } = useBlockNumber({
-    watch: true,
-  });
-
-  // Watch for BatchSubmitted events
-  useWatchContractEvent({
-    address: CONTRACT_ADDRESS,
-    abi: batchSettlementABI,
-    eventName: "BatchSubmitted",
-    onLogs(logs) {
-      console.log("BatchSubmitted events:", logs);
-
-      const newEvents = logs.map((log) => ({
-        id: `batch-${log.transactionHash}-${log.logIndex}`,
-        type: "BatchSubmitted" as const,
-        txHash: log.transactionHash || "",
-        blockNumber: Number(log.blockNumber || 0),
-        timestamp: Date.now(), // In real app, would fetch block timestamp
-        data: {
-          root: log.args?.root || "",
-          submitter: log.args?.submitter || "",
-        },
-      }));
-
-      setEvents((prev) => [...newEvents, ...prev].slice(0, 50)); // Keep last 50 events
-    },
-  });
-
-  // Watch for Disputed events
-  useWatchContractEvent({
-    address: CONTRACT_ADDRESS,
-    abi: batchSettlementABI,
-    eventName: "Disputed",
-    onLogs(logs) {
-      console.log("Disputed events:", logs);
-
-      const newEvents = logs.map((log) => ({
-        id: `dispute-${log.transactionHash}-${log.logIndex}`,
-        type: "Disputed" as const,
-        txHash: log.transactionHash || "",
-        blockNumber: Number(log.blockNumber || 0),
-        timestamp: Date.now(),
-        data: {
-          root: log.args?.root || "",
-          disputer: log.args?.disputer || "",
-        },
-      }));
-
-      setEvents((prev) => [...newEvents, ...prev].slice(0, 50));
-    },
-  });
+  const [events, setEvents] = useState<Event[]>([]);
 
   useEffect(() => {
-    // Set connection status based on block number availability
-    if (blockNumber !== undefined) {
-      setIsConnected(true);
-      setLoading(false);
-    } else {
-      // If no block number after 5 seconds, show as disconnected but not loading
-      const timer = setTimeout(() => {
-        setLoading(false);
-        setIsConnected(false);
-      }, 5000);
+    // Simulate events
+    const mockEvents: Event[] = [
+      {
+        id: "1",
+        type: "OrderPlaced",
+        timestamp: Date.now() - 60000,
+        data: { price: "1.2412", amount: "1074", side: "bid" },
+      },
+      {
+        id: "2",
+        type: "BatchSubmitted",
+        timestamp: Date.now() - 30000,
+        data: { root: "0xabcd...", fills: 5 },
+      },
+    ];
+    setEvents(mockEvents);
 
-      return () => clearTimeout(timer);
-    }
-  }, [blockNumber]);
-
-  useEffect(() => {
-    // Add some mock events initially for demo purposes
-    if (!loading && events.length === 0) {
-      const mockEvents: BlockchainEvent[] = [
-        {
-          id: "mock-1",
-          type: "BatchSubmitted",
-          txHash: "0x1234567890abcdef1234567890abcdef12345678",
-          blockNumber: Number(blockNumber || 18500123),
-          timestamp: Date.now() - 300000, // 5 minutes ago
+    // Add new events periodically
+    const interval = setInterval(() => {
+      if (Math.random() > 0.7) {
+        const newEvent: Event = {
+          id: Date.now().toString(),
+          type: Math.random() > 0.5 ? "OrderPlaced" : "OrderMatched",
+          timestamp: Date.now(),
           data: {
-            root: "0xabcd1234...",
-            submitter: "0x9876...5432",
+            price: (1.2 + Math.random() * 0.1).toFixed(4),
+            amount: Math.floor(Math.random() * 2000 + 500).toString(),
           },
-        },
-        {
-          id: "mock-2",
-          type: "BatchSubmitted",
-          txHash: "0x3456789012cdefgh3456789012cdefgh34567890",
-          blockNumber: Number(blockNumber || 18500121) - 2,
-          timestamp: Date.now() - 900000, // 15 minutes ago
-          data: {
-            root: "0xbeef8765...",
-            submitter: "0x1111...2222",
-          },
-        },
-      ];
-      setEvents(mockEvents);
-    }
-  }, [loading, events.length, blockNumber]);
+        };
+        setEvents((prev) => [newEvent, ...prev.slice(0, 9)]);
+      }
+    }, 3000);
 
-  const formatTimeAgo = (timestamp: number) => {
-    const diff = Date.now() - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return "Just now";
-    if (minutes === 1) return "1 minute ago";
-    if (minutes < 60) return `${minutes} minutes ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours === 1) return "1 hour ago";
-    return `${hours} hours ago`;
-  };
+    return () => clearInterval(interval);
+  }, []);
 
   const getEventIcon = (type: string) => {
     switch (type) {
       case "BatchSubmitted":
         return "📦";
-      case "Disputed":
-        return "⚠️";
       case "OrderMatched":
-        return "✅";
-      default:
+        return "🤝";
+      case "OrderPlaced":
         return "📋";
+      default:
+        return "⚡";
     }
   };
 
   const getEventColor = (type: string) => {
     switch (type) {
       case "BatchSubmitted":
-        return "#1976d2";
-      case "Disputed":
-        return "#d32f2f";
+        return "#02c076";
       case "OrderMatched":
-        return "#388e3c";
+        return "#f0b90b";
+      case "OrderPlaced":
+        return "#1890ff";
       default:
-        return "#666";
+        return "#848e9c";
     }
   };
 
-  const getExplorerUrl = (txHash: string) => {
-    const rpcUrl = import.meta.env.VITE_RPC_URL || "http://localhost:8545";
-    if (rpcUrl.includes("localhost") || rpcUrl.includes("127.0.0.1")) {
-      return `#`; // Local development, no explorer
-    }
-    return `https://explorer.testnet.io/tx/${txHash}`;
+  const formatTimeAgo = (timestamp: number) => {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    return `${Math.floor(seconds / 3600)}h ago`;
   };
-
-  if (loading) {
-    return (
-      <div
-        style={{
-          border: "1px solid #e0e0e0",
-          borderRadius: "8px",
-          padding: "16px",
-          backgroundColor: "#f9f9f9",
-          height: "300px",
-        }}
-      >
-        <h3 style={{ margin: "0 0 16px 0", color: "#333" }}>
-          ⛓️ On-chain Events
-        </h3>
-        <div style={{ textAlign: "center", color: "#666", marginTop: "80px" }}>
-          <div>🔄 Connecting to blockchain...</div>
-          <div style={{ fontSize: "11px", marginTop: "4px" }}>
-            Listening for BatchSubmitted events
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div
       style={{
-        border: "1px solid #e0e0e0",
-        borderRadius: "8px",
-        padding: "16px",
-        backgroundColor: "#f9f9f9",
-        height: "300px",
+        height: "100%",
+        backgroundColor: "#0d1421",
+        color: "#ffffff",
         display: "flex",
         flexDirection: "column",
       }}
@@ -203,57 +96,48 @@ export default function EventLog() {
           justifyContent: "space-between",
           alignItems: "center",
           marginBottom: "16px",
+          paddingBottom: "8px",
+          borderBottom: "1px solid #1e2329",
         }}
       >
-        <h3 style={{ margin: 0, color: "#333" }}>⛓️ On-chain Events</h3>
+        <h3
+          style={{
+            margin: 0,
+            color: "#ffffff",
+            fontSize: "16px",
+            fontWeight: "600",
+          }}
+        >
+          ⛓️ Real-time Events
+        </h3>
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
+            alignItems: "center",
             fontSize: "11px",
+            gap: "6px",
           }}
         >
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              color: isConnected ? "#388e3c" : "#d32f2f",
+              width: "6px",
+              height: "6px",
+              borderRadius: "50%",
+              backgroundColor: "#02c076",
             }}
-          >
-            <div
-              style={{
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-                backgroundColor: isConnected ? "#388e3c" : "#d32f2f",
-                marginRight: "6px",
-              }}
-            />
-            {isConnected ? "Connected" : "Disconnected"}
-          </div>
-          {blockNumber && (
-            <div style={{ color: "#666", marginTop: "2px" }}>
-              Block: {blockNumber.toString()}
-            </div>
-          )}
+          />
+          <span style={{ color: "#848e9c" }}>Live</span>
         </div>
       </div>
 
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          maxHeight: "220px",
-        }}
-      >
+      <div style={{ flex: 1, overflowY: "auto" }}>
         {events.length === 0 ? (
           <div
-            style={{ textAlign: "center", color: "#666", marginTop: "40px" }}
+            style={{ textAlign: "center", color: "#848e9c", padding: "40px 0" }}
           >
             <div>No events yet</div>
             <div style={{ fontSize: "11px", marginTop: "4px" }}>
-              Waiting for BatchSubmitted events...
+              Waiting for activity...
             </div>
           </div>
         ) : (
@@ -261,11 +145,11 @@ export default function EventLog() {
             <div
               key={event.id}
               style={{
-                border: "1px solid #e0e0e0",
+                border: "1px solid #1e2329",
                 borderRadius: "6px",
                 padding: "12px",
                 marginBottom: "8px",
-                backgroundColor: "#fff",
+                backgroundColor: "#1e2329",
                 fontSize: "12px",
               }}
             >
@@ -290,39 +174,16 @@ export default function EventLog() {
                     {event.type}
                   </span>
                 </div>
-                <span style={{ color: "#999", fontSize: "10px" }}>
+                <span style={{ color: "#848e9c", fontSize: "10px" }}>
                   {formatTimeAgo(event.timestamp)}
                 </span>
               </div>
 
-              <div style={{ marginBottom: "4px" }}>
-                <strong>Block:</strong> {event.blockNumber.toLocaleString()}
-              </div>
-
-              <div style={{ marginBottom: "6px" }}>
-                <strong>Tx:</strong>
-                <a
-                  href={getExplorerUrl(event.txHash)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    color: "#1976d2",
-                    textDecoration: "none",
-                    marginLeft: "4px",
-                  }}
-                >
-                  {event.txHash.slice(0, 10)}...{event.txHash.slice(-6)}
-                </a>
-              </div>
-
-              {Object.keys(event.data).length > 0 && (
-                <div style={{ fontSize: "11px", color: "#666" }}>
+              {event.data && (
+                <div style={{ fontSize: "11px", color: "#848e9c" }}>
                   {Object.entries(event.data).map(([key, value]) => (
                     <div key={key}>
-                      <strong>{key}:</strong>{" "}
-                      {typeof value === "string" && value.length > 20
-                        ? `${value.slice(0, 20)}...`
-                        : String(value)}
+                      <strong>{key}:</strong> {String(value)}
                     </div>
                   ))}
                 </div>
@@ -330,6 +191,131 @@ export default function EventLog() {
             </div>
           ))
         )}
+      </div>
+
+      <div
+        style={{
+          marginTop: "16px",
+          paddingTop: "16px",
+          borderTop: "1px solid #1e2329",
+        }}
+      >
+        <h4
+          style={{
+            margin: "0 0 12px 0",
+            color: "#ffffff",
+            fontSize: "14px",
+            fontWeight: "600",
+          }}
+        >
+          📊 Recent Batches
+        </h4>
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              fontSize: "11px",
+              borderCollapse: "collapse",
+            }}
+          >
+            <thead>
+              <tr style={{ backgroundColor: "#1e2329" }}>
+                <th
+                  style={{
+                    padding: "6px",
+                    textAlign: "left",
+                    border: "1px solid #2b3139",
+                    color: "#848e9c",
+                  }}
+                >
+                  Root
+                </th>
+                <th
+                  style={{
+                    padding: "6px",
+                    textAlign: "left",
+                    border: "1px solid #2b3139",
+                    color: "#848e9c",
+                  }}
+                >
+                  Block
+                </th>
+                <th
+                  style={{
+                    padding: "6px",
+                    textAlign: "left",
+                    border: "1px solid #2b3139",
+                    color: "#848e9c",
+                  }}
+                >
+                  Time
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td
+                  style={{
+                    padding: "6px",
+                    border: "1px solid #2b3139",
+                    color: "#ffffff",
+                    fontFamily: "monospace",
+                  }}
+                >
+                  0xabcd...1234
+                </td>
+                <td
+                  style={{
+                    padding: "6px",
+                    border: "1px solid #2b3139",
+                    color: "#ffffff",
+                  }}
+                >
+                  12,345,678
+                </td>
+                <td
+                  style={{
+                    padding: "6px",
+                    border: "1px solid #2b3139",
+                    color: "#ffffff",
+                  }}
+                >
+                  2 min ago
+                </td>
+              </tr>
+              <tr>
+                <td
+                  style={{
+                    padding: "6px",
+                    border: "1px solid #2b3139",
+                    color: "#ffffff",
+                    fontFamily: "monospace",
+                  }}
+                >
+                  0xbeef...5678
+                </td>
+                <td
+                  style={{
+                    padding: "6px",
+                    border: "1px solid #2b3139",
+                    color: "#ffffff",
+                  }}
+                >
+                  12,345,675
+                </td>
+                <td
+                  style={{
+                    padding: "6px",
+                    border: "1px solid #2b3139",
+                    color: "#ffffff",
+                  }}
+                >
+                  5 min ago
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

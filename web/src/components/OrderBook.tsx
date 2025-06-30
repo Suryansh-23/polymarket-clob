@@ -29,97 +29,42 @@ export default function OrderBook() {
         timeout: 5000,
       });
 
-      const allOrders = [...response.data.bids, ...response.data.asks];
+      // Handle null/undefined arrays from API
+      const allOrders = [
+        ...(response.data.bids || []),
+        ...(response.data.asks || []),
+      ];
       setOrders(allOrders);
       setLastUpdate(new Date());
       setLoading(false);
     } catch (err) {
       console.error("Failed to fetch order book:", err);
-      setError("Failed to load order book");
+      setError("API Error");
       setLoading(false);
-
-      // Fallback to mock data if API is not available
-      const mockOrders: Order[] = [
-        {
-          id: "1",
-          price: 1.25,
-          amount: 1000,
-          timestamp: Date.now(),
-          side: "bid",
-        },
-        {
-          id: "2",
-          price: 1.24,
-          amount: 500,
-          timestamp: Date.now(),
-          side: "bid",
-        },
-        {
-          id: "3",
-          price: 1.26,
-          amount: 750,
-          timestamp: Date.now(),
-          side: "ask",
-        },
-        {
-          id: "4",
-          price: 1.27,
-          amount: 300,
-          timestamp: Date.now(),
-          side: "ask",
-        },
-      ];
-      setOrders(mockOrders);
     }
   };
 
   useEffect(() => {
-    // Initial fetch
     fetchOrderBook();
-
-    // Set up polling every 1 second
     const interval = setInterval(fetchOrderBook, 1000);
-
     return () => clearInterval(interval);
   }, []);
 
   const bids = orders
     .filter((order) => order.side === "bid")
-    .sort((a, b) => b.price - a.price || a.timestamp - b.timestamp); // Price desc, then time asc
-
+    .sort((a, b) => b.price - a.price);
   const asks = orders
     .filter((order) => order.side === "ask")
-    .sort((a, b) => a.price - b.price || a.timestamp - b.timestamp); // Price asc, then time asc
-
-  if (loading && orders.length === 0) {
-    return (
-      <div
-        style={{
-          border: "1px solid #e0e0e0",
-          borderRadius: "8px",
-          padding: "16px",
-          backgroundColor: "#f9f9f9",
-        }}
-      >
-        <h3 style={{ margin: "0 0 16px 0", color: "#333" }}>📊 Order Book</h3>
-        <div style={{ textAlign: "center", color: "#666" }}>
-          <div>🔄 Loading orders...</div>
-          <div style={{ fontSize: "11px", marginTop: "4px" }}>
-            Connecting to{" "}
-            {import.meta.env.VITE_API_URL || "http://localhost:8081"}
-          </div>
-        </div>
-      </div>
-    );
-  }
+    .sort((a, b) => a.price - b.price);
 
   return (
     <div
       style={{
-        border: "1px solid #e0e0e0",
-        borderRadius: "8px",
-        padding: "16px",
-        backgroundColor: "#f9f9f9",
+        height: "100%",
+        backgroundColor: "#0d1421",
+        color: "#ffffff",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <div
@@ -128,86 +73,186 @@ export default function OrderBook() {
           justifyContent: "space-between",
           alignItems: "center",
           marginBottom: "16px",
+          paddingBottom: "8px",
+          borderBottom: "1px solid #1e2329",
         }}
       >
-        <h3 style={{ margin: 0, color: "#333" }}>📊 Order Book</h3>
-        <div
-          style={{ display: "flex", alignItems: "center", fontSize: "11px" }}
+        <h3
+          style={{
+            margin: 0,
+            color: "#ffffff",
+            fontSize: "16px",
+            fontWeight: "600",
+          }}
         >
-          {error ? (
-            <span style={{ color: "#d32f2f" }}>⚠️ {error}</span>
-          ) : (
-            <span style={{ color: "#388e3c" }}>🟢 Live</span>
-          )}
+          📊 Order Book
+        </h3>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            fontSize: "11px",
+            gap: "6px",
+          }}
+        >
+          <div
+            style={{
+              width: "6px",
+              height: "6px",
+              borderRadius: "50%",
+              backgroundColor: error ? "#f84960" : "#02c076",
+            }}
+          />
+          <span style={{ color: error ? "#f84960" : "#848e9c" }}>
+            {error ? "Error" : "Live"}
+          </span>
         </div>
       </div>
 
       <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: "12px",
+          fontSize: "11px",
+          color: "#848e9c",
+          textTransform: "uppercase",
+          fontWeight: "500",
+        }}
       >
-        {/* Asks */}
-        <div>
-          <h4
-            style={{ margin: "0 0 8px 0", color: "#d32f2f", fontSize: "14px" }}
+        <span>Price (USDC)</span>
+        <span>Size</span>
+      </div>
+
+      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ marginBottom: "12px" }}>
+          <div
+            style={{
+              fontSize: "11px",
+              color: "#848e9c",
+              marginBottom: "8px",
+              textTransform: "uppercase",
+              fontWeight: "500",
+            }}
           >
-            ASKS (Sell Orders)
-          </h4>
-          <div style={{ maxHeight: "200px", overflowY: "auto" }}>
-            {asks.length === 0 ? (
-              <div
-                style={{
-                  textAlign: "center",
-                  color: "#999",
-                  padding: "20px",
-                  fontSize: "12px",
-                }}
-              >
-                No ask orders
-              </div>
-            ) : (
-              asks.map((order) => (
+            Asks ({asks.length})
+          </div>
+          <div style={{ maxHeight: "150px", overflowY: "auto" }}>
+            {loading && orders.length === 0 ? (
+              [...Array(3)].map((_, i) => (
                 <div
-                  key={order.id}
+                  key={i}
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    padding: "4px 8px",
-                    backgroundColor: "#ffebee",
-                    borderRadius: "4px",
-                    marginBottom: "2px",
-                    fontSize: "12px",
+                    padding: "3px 0",
                   }}
                 >
-                  <span style={{ color: "#d32f2f", fontWeight: "bold" }}>
-                    ${order.price.toFixed(3)}
-                  </span>
-                  <span style={{ color: "#666" }}>
-                    {order.amount.toLocaleString()}
-                  </span>
+                  <div
+                    className="skeleton"
+                    style={{ width: "60px", height: "14px" }}
+                  ></div>
+                  <div
+                    className="skeleton"
+                    style={{ width: "80px", height: "14px" }}
+                  ></div>
                 </div>
               ))
+            ) : asks.length === 0 ? (
+              <div
+                style={{
+                  textAlign: "center",
+                  color: "#848e9c",
+                  padding: "20px 0",
+                  fontSize: "12px",
+                }}
+              >
+                No asks
+              </div>
+            ) : (
+              asks
+                .slice()
+                .reverse()
+                .map((order) => (
+                  <div
+                    key={order.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      padding: "3px 0",
+                      fontSize: "12px",
+                      fontFamily: "monospace",
+                    }}
+                  >
+                    <span style={{ color: "#f84960", fontWeight: "500" }}>
+                      {order.price.toFixed(4)}
+                    </span>
+                    <span style={{ color: "#848e9c" }}>
+                      {order.amount.toLocaleString()}
+                    </span>
+                  </div>
+                ))
             )}
           </div>
         </div>
 
-        {/* Bids */}
+        <div
+          style={{
+            textAlign: "center",
+            padding: "8px 0",
+            backgroundColor: "#1e2329",
+            borderRadius: "4px",
+            fontSize: "11px",
+            color: "#848e9c",
+            marginBottom: "12px",
+          }}
+        >
+          Spread ↔ USDC
+        </div>
+
         <div>
-          <h4
-            style={{ margin: "0 0 8px 0", color: "#388e3c", fontSize: "14px" }}
+          <div
+            style={{
+              fontSize: "11px",
+              color: "#848e9c",
+              marginBottom: "8px",
+              textTransform: "uppercase",
+              fontWeight: "500",
+            }}
           >
-            BIDS (Buy Orders)
-          </h4>
-          <div style={{ maxHeight: "200px", overflowY: "auto" }}>
-            {bids.length === 0 ? (
+            Bids ({bids.length})
+          </div>
+          <div style={{ maxHeight: "150px", overflowY: "auto" }}>
+            {loading && orders.length === 0 ? (
+              [...Array(3)].map((_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "3px 0",
+                  }}
+                >
+                  <div
+                    className="skeleton"
+                    style={{ width: "60px", height: "14px" }}
+                  ></div>
+                  <div
+                    className="skeleton"
+                    style={{ width: "80px", height: "14px" }}
+                  ></div>
+                </div>
+              ))
+            ) : bids.length === 0 ? (
               <div
                 style={{
                   textAlign: "center",
-                  color: "#999",
-                  padding: "20px",
+                  color: "#848e9c",
+                  padding: "20px 0",
                   fontSize: "12px",
                 }}
               >
-                No bid orders
+                No bids
               </div>
             ) : (
               bids.map((order) => (
@@ -216,17 +261,15 @@ export default function OrderBook() {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    padding: "4px 8px",
-                    backgroundColor: "#e8f5e8",
-                    borderRadius: "4px",
-                    marginBottom: "2px",
+                    padding: "3px 0",
                     fontSize: "12px",
+                    fontFamily: "monospace",
                   }}
                 >
-                  <span style={{ color: "#388e3c", fontWeight: "bold" }}>
-                    ${order.price.toFixed(3)}
+                  <span style={{ color: "#02c076", fontWeight: "500" }}>
+                    {order.price.toFixed(4)}
                   </span>
-                  <span style={{ color: "#666" }}>
+                  <span style={{ color: "#848e9c" }}>
                     {order.amount.toLocaleString()}
                   </span>
                 </div>
@@ -238,13 +281,15 @@ export default function OrderBook() {
 
       <div
         style={{
-          marginTop: "12px",
-          fontSize: "11px",
-          color: "#999",
+          marginTop: "auto",
+          fontSize: "10px",
+          color: "#848e9c",
           textAlign: "center",
+          paddingTop: "8px",
+          borderTop: "1px solid #1e2329",
         }}
       >
-        Last updated: {lastUpdate.toLocaleTimeString()}
+        Updated: {lastUpdate.toLocaleTimeString()}
       </div>
     </div>
   );

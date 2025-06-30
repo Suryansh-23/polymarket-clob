@@ -99,11 +99,23 @@ export default function VolumeChart() {
         <h3 style={{ margin: "0 0 16px 0", color: "#333" }}>
           📊 Trading Volume
         </h3>
-        <div style={{ textAlign: "center", color: "#666", marginTop: "80px" }}>
-          <div>🔄 Loading volume data...</div>
-          <div style={{ fontSize: "11px", marginTop: "4px" }}>
-            Fetching 24h trading volume
-          </div>
+        <div
+          style={{
+            width: "100%",
+            height: "220px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+          }}
+        >
+          <div
+            className="skeleton skeleton-line"
+            style={{ height: "20px", width: "70%" }}
+          ></div>
+          <div
+            className="skeleton skeleton-line"
+            style={{ height: "180px", width: "100%" }}
+          ></div>
         </div>
       </div>
     );
@@ -150,7 +162,7 @@ export default function VolumeChart() {
       </div>
 
       <ResponsiveContainer width="100%" height="85%">
-        <BarChart data={volumeData}>
+        <BarChart data={volumeData || []}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="time" fontSize={10} interval="preserveStartEnd" />
           <YAxis

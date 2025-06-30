@@ -42,27 +42,65 @@ export default function DepthChart() {
       .filter((o) => o.side === "ask")
       .sort((a, b) => a.price - b.price);
 
+    // If no orders, generate some mock depth data for visualization
+    if (orders.length === 0) {
+      const mockData: DepthData[] = [];
+      const basePrice = 1.25;
+
+      // Generate mock bid depth (decreasing prices, increasing depth)
+      for (let i = 0; i < 20; i++) {
+        const price = basePrice - i * 0.001;
+        const depth = (i + 1) * 500;
+        mockData.push({ price, bidDepth: depth, askDepth: 0 });
+      }
+
+      // Generate mock ask depth (increasing prices, increasing depth)
+      for (let i = 0; i < 20; i++) {
+        const price = basePrice + i * 0.001;
+        const depth = (i + 1) * 500;
+        mockData.push({ price, bidDepth: 0, askDepth: depth });
+      }
+
+      return mockData.sort((a, b) => a.price - b.price);
+    }
+
     const depthMap = new Map<number, { bidDepth: number; askDepth: number }>();
 
-    // Calculate cumulative bid depth
+    // Add price points around market to ensure smooth curves
+    const allPrices = [
+      ...new Set([...bids.map((b) => b.price), ...asks.map((a) => a.price)]),
+    ];
+    const minPrice = Math.min(...allPrices) - 0.01;
+    const maxPrice = Math.max(...allPrices) + 0.01;
+
+    // Initialize with zero depth for price range
+    for (let price = minPrice; price <= maxPrice; price += 0.001) {
+      const roundedPrice = Math.round(price * 1000) / 1000;
+      depthMap.set(roundedPrice, { bidDepth: 0, askDepth: 0 });
+    }
+
+    // Calculate cumulative bid depth (higher prices first)
     let cumulativeBidDepth = 0;
     for (const bid of bids) {
       cumulativeBidDepth += bid.amount;
-      depthMap.set(bid.price, {
-        bidDepth: cumulativeBidDepth,
-        askDepth: depthMap.get(bid.price)?.askDepth || 0,
-      });
+      // Apply depth to this price and all lower prices
+      for (const [price, depths] of depthMap.entries()) {
+        if (price <= bid.price) {
+          depths.bidDepth = Math.max(depths.bidDepth, cumulativeBidDepth);
+        }
+      }
     }
 
-    // Calculate cumulative ask depth
+    // Calculate cumulative ask depth (lower prices first)
     let cumulativeAskDepth = 0;
     for (const ask of asks) {
       cumulativeAskDepth += ask.amount;
-      const existing = depthMap.get(ask.price);
-      depthMap.set(ask.price, {
-        bidDepth: existing?.bidDepth || 0,
-        askDepth: cumulativeAskDepth,
-      });
+      // Apply depth to this price and all higher prices
+      for (const [price, depths] of depthMap.entries()) {
+        if (price >= ask.price) {
+          depths.askDepth = Math.max(depths.askDepth, cumulativeAskDepth);
+        }
+      }
     }
 
     // Convert to array and sort by price
@@ -72,7 +110,8 @@ export default function DepthChart() {
         bidDepth: depths.bidDepth,
         askDepth: depths.askDepth,
       }))
-      .sort((a, b) => a.price - b.price);
+      .sort((a, b) => a.price - b.price)
+      .filter((d) => d.bidDepth > 0 || d.askDepth > 0); // Only show points with depth
   };
 
   const fetchDepthData = async () => {
@@ -155,11 +194,23 @@ export default function DepthChart() {
         }}
       >
         <h3 style={{ margin: "0 0 16px 0", color: "#333" }}>📈 Market Depth</h3>
-        <div style={{ textAlign: "center", color: "#666", marginTop: "80px" }}>
-          <div>🔄 Loading depth chart...</div>
-          <div style={{ fontSize: "11px", marginTop: "4px" }}>
-            Computing from order book data
-          </div>
+        <div
+          style={{
+            width: "100%",
+            height: "220px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+          }}
+        >
+          <div
+            className="skeleton skeleton-line"
+            style={{ height: "20px", width: "60%" }}
+          ></div>
+          <div
+            className="skeleton skeleton-line"
+            style={{ height: "180px", width: "100%" }}
+          ></div>
         </div>
       </div>
     );
@@ -194,7 +245,7 @@ export default function DepthChart() {
       </div>
 
       <ResponsiveContainer width="100%" height="85%">
-        <AreaChart data={depthData}>
+        <AreaChart data={depthData || []}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="price"

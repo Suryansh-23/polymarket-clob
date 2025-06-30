@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 
 	"github.com/Layr-Labs/hourglass-avs-template/cmd/matcher"
 	"github.com/Layr-Labs/hourglass-avs-template/cmd/submitter"
+	"github.com/joho/godotenv"
 )
 
 // Global variables
@@ -115,6 +117,26 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 // Main function starts the Polymarket CLOB Sequencer service
 func main() {
 	log.Println("Starting Polymarket CLOB Sequencer...")
+
+	// Load environment variables from .env file
+	if err := godotenv.Load(".env"); err != nil {
+		// Try to load from cmd directory if not found in current directory
+		if err2 := godotenv.Load("cmd/.env"); err2 != nil {
+			log.Printf("Warning: Could not load .env file: %v", err)
+		} else {
+			log.Println("Loaded environment variables from cmd/.env")
+		}
+	} else {
+		log.Println("Loaded environment variables from .env")
+	}
+
+	// Validate required environment variables
+	requiredVars := []string{"RPC_URL", "PRIVATE_KEY", "BATCH_SETTLEMENT_ADDRESS"}
+	for _, envVar := range requiredVars {
+		if os.Getenv(envVar) == "" {
+			log.Printf("Warning: %s environment variable not set", envVar)
+		}
+	}
 
 	// Initialize the global orderbook
 	orderBook = make([]matcher.Order, 0)

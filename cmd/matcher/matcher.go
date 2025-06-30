@@ -11,11 +11,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Layr-Labs/crypto-libs/pkg/bn254"
+	"github.com/Layr-Labs/crypto-libs/pkg/signing"
 	"github.com/cbergoon/merkletree"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/Layr-Labs/crypto-libs/pkg/bn254"
-	"github.com/Layr-Labs/crypto-libs/pkg/signing"
+	"github.com/joho/godotenv"
 )
 
 // Global BLS private keys for operator signing
@@ -25,6 +26,19 @@ var (
 
 // init loads BLS private keys from environment variable
 func init() {
+
+	// Load environment variables from .env file
+	if err := godotenv.Load(".env"); err != nil {
+		// Try to load from cmd directory if not found in current directory
+		if err2 := godotenv.Load("cmd/.env"); err2 != nil {
+			log.Printf("Warning: Could not load .env file: %v", err)
+		} else {
+			log.Println("Loaded environment variables from cmd/.env")
+		}
+	} else {
+		log.Println("Loaded environment variables from .env")
+	}
+
 	// Load private keys from BLS_KEYS environment variable
 	raw := os.Getenv("BLS_KEYS")
 	if raw == "" {
